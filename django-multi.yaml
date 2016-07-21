@@ -1,0 +1,407 @@
+heat_template_version: 2013-05-23
+
+description: |
+  #### Django
+
+  Load Balanced Linux servers running [Django](http://djangoproject.com)
+  installed in a [Python](http://python.org)
+  [Virtual Environment](http://virutalenv.org)
+  running behind [Apache](http://httpd.apache.org/) with
+  [mod_wsgi](http://code.google.com/p/modwsgi/). The backend is a
+  Cloud Database running [MySQL](http://www.mysql.com/).
+  You may install a Django application by providing a URL to a public git
+  repository or a source distribution tarball that can be installed with pip.
+  Alternatively, you can continue without installing an application at this
+  time and your servers will be created with an empty Django project where
+  you can begin development of your site.
+
+parameter_groups:
+
+- label: Server Settings
+  parameters:
+  - flavor
+  - image
+  - server_count
+
+- label: Database Settings
+  parameters:
+  - db_flavor
+  - db_user
+  - db_size
+  - datastore_version
+
+- label: Django Settings
+  parameters:
+  - project_name
+  - app_name
+  - django_admin_user
+  - django_admin_email
+  - virtualenv
+  - venv_username
+
+- label: RackConnect Settings
+  parameters:
+  - rc_network_name
+- label: rax-dev-params
+  # These are parameters that will not be displayed in the portal. The purpose
+  # of these parameters are for users who are developing or testing newer or
+  # different setups. If any of these parameters are changed, there is a good
+  # chance this stack will fail to properly deploy.
+  parameters:
+  - load_balancer_hostname
+  - server_hostname
+  - kitchen
+  - chef_version
+
+parameters:
+
+  load_balancer_hostname:
+    label: Hostname
+    description: Hostname for the Load Balancer
+    type: string
+    default: Django-Load-Balancer
+    constraints:
+    - length:
+        min: 1
+        max: 64
+    - allowed_pattern: "^[a-zA-Z][a-zA-Z0-9-]*$"
+      description: |
+        Must begin with a letter and contain only alphanumeric characters.
+
+  server_hostname:
+    label: Server Hostname
+    description: Host name to give the servers provisioned
+    type: string
+    default: django-%index%
+    constraints:
+    - length:
+        min: 1
+        max: 64
+    - allowed_pattern: "^[a-zA-Z][a-zA-Z0-9%-]*$"
+      description: |
+        Must begin with a letter and contain only alphanumeric characters.
+
+  server_count:
+    label: Server Count
+    description: Number of servers to deploy
+    type: number
+    default: 2
+    constraints:
+    - range:
+        min: 1
+        max: 25
+      description: Must be between 0 and 24 servers.
+
+  image:
+    label: Operating System
+    description: |
+      Required: Server image used for all servers that are created as a part of
+      this deployment.
+    type: string
+    default: Ubuntu 12.04 LTS (Precise Pangolin) (PVHVM)
+    constraints:
+    - allowed_values:
+      - Ubuntu 12.04 LTS (Precise Pangolin) (PVHVM)
+      description: Must be a supported operating system.
+
+  flavor:
+    label: Server Size
+    description: |
+      Required: Rackspace Cloud Server flavor to use. The size is based on the
+      amount of RAM for the provisioned server.
+    type: string
+    default: 4 GB General Purpose v1
+    constraints:
+    - allowed_values:
+      - 1 GB General Purpose v1
+      - 2 GB General Purpose v1
+      - 4 GB General Purpose v1
+      - 8 GB General Purpose v1
+      - 15 GB I/O v1
+      - 30 GB I/O v1
+      - 60 GB I/O v1
+      - 90 GB Performance
+      - 1GB Standard Instance
+      - 2GB Standard Instance
+      - 4GB Standard Instance
+      - 8GB Standard Instance
+      - 15GB Standard Instance
+      - 30GB Standard Instance
+      description: |
+        Must be a valid Rackspace Cloud Server flavor for the region you have
+        selected to deploy into.
+
+  db_flavor:
+    label: Cloud Database Size
+    description: |
+      Required: Rackspace Cloud Database Flavor. Size is based on amount of RAM
+      for the provisioned instance.
+    type: string
+    default: 1GB Instance
+    constraints:
+    - allowed_values:
+      - 512MB Instance
+      - 1GB Instance
+      - 2GB Instance
+      - 4GB Instance
+      - 8GB Instance
+      - 16GB Instance
+      description: |
+        Must be a valid Rackspace Cloud Database flavor for the region you have
+        selected to deploy into.
+
+  db_user:
+    label: Database Username
+    description: |
+      Required: Username for the database.
+    type: string
+    default: db_user
+    constraints:
+    - allowed_pattern: "^(.){1,16}$"
+      description: |
+        Must be shorter than 16 characters, this is due to MySQL's maximum
+        username length.
+
+  db_size:
+    label: Database Size
+    description: |
+      Required: Amount of storage required for your Rackspace Cloud Database,
+      in GB.
+    type: number
+    default: 10
+    constraints:
+    - range:
+        min: 10
+        max: 150
+    description: |
+        Database instance size, in GB. min 10, max 150
+
+  datastore_version:
+    label: MySQL Version
+    type: string
+    description: |
+      Required: Version of MySQL to run on the Cloud Databases instance.
+    default: "5.6"
+    constraints:
+    - allowed_values:
+      - "5.6"
+      - "5.1"
+
+  virtualenv:
+    label: virtualenv
+    type: string
+    default: venv
+    description: |
+      Python Virtual Environment in which Django will be installed.
+      It will be created in the /srv directory.
+
+  project_name:
+    label: Project Name
+    description: Name of your Django project.
+    type: string
+    description: The name to use to create your Django project.
+    default: mysite
+    constraints:
+    - allowed_pattern: "^[A-Za-z0-9_]{1,31}$"
+      description: |
+          Must be alphanumeric and fewer than 32 chanracters.
+
+  app_name:
+    label: Application Name
+    type: string
+    description: The name of your Django application.
+    default: myapp
+    constraints:
+    - allowed_pattern: "^[A-Za-z0-9_]{1,31}$"
+      description: |
+          Must be alphanumeric and fewer than 32 chanracters.
+
+  django_admin_user:
+    label: Admin User
+    type: string
+    description: Administrative username for logging into Django.
+    default: djangouser
+    constraints:
+    - allowed_pattern: "^(?=.*).{0,256}$"
+      description: |
+          Must be less than 256 chanracters.
+
+  django_admin_email:
+    label: Admin Email
+    description: |
+      Email address for the administrative user for this Django site.
+    type: string
+    description: Email address
+    default: admin@example.com
+    constraints:
+    - allowed_pattern: "^(?=.*).{0,512}$"
+      description: |
+          Must be less than 512 chanracters.
+
+  venv_username:
+    label: System User
+    type: string
+    default: pydev
+    description: |
+      Username with which to login to the Linux servers.  This user
+      will be the owner of the Python Virtual Environment under which Django
+      is installed.
+    constraints:
+    - allowed_pattern: "^(?!^root$)([a-z_][a-z0-9_]{0,30})$"
+      description: alphanumeric, lowercase, and not root.
+
+  kitchen:
+    label: Kitchen
+    description: |
+      URL for the kitchen to use, fetched using git
+    type: string
+    default: https://github.com/rackspace-orchestration-templates/django-clouddb-rc
+
+  chef_version:
+    label: Chef Version
+    description: Version of chef client to use
+    type: string
+    default: 11.14.6
+
+  child_template:
+    label: Child Template
+    description: Location of child template
+    type: string
+    default: hhttp://catalog.rs-heat.com/django-clouddb-rc/django-single-rc.yaml
+
+  rc_network_name:
+    type: string
+    label: RackConnect Network
+    description: Name or UUID of RackConnected network to attach this server to
+    constraints:
+    - custom_constraint: rackconnect.network
+    immutable: true
+resources:
+  # SSH keys
+  ssh_key:
+    type: "OS::Nova::KeyPair"
+    properties:
+      name: { get_param: "OS::stack_id" }
+      save_private_key: true
+
+  # Password Generation
+  django_admin_pass:
+    type: "OS::Heat::RandomString"
+    properties:
+      length: 16
+      sequence: hexdigits
+
+  db_pass:
+    type: "OS::Heat::RandomString"
+    properties:
+      length: 16
+      sequence: hexdigits
+
+  service_db:
+    type: OS::Trove::Instance
+    properties:
+      name: app_db
+      flavor: { get_param: db_flavor }
+      size: { get_param: db_size }
+      datastore_type: mysql
+      datastore_version: { get_param: datastore_version }
+      databases:
+      - name: app_data
+      users:
+      - name: { get_param: db_user }
+        password: { get_attr: [db_pass, value] }
+        databases: [ app_data ]
+
+  django_setup:
+    type: "OS::Heat::ResourceGroup"
+    depends_on: service_db
+    properties:
+      count: { get_param: server_count }
+      resource_def:
+        type: { get_param: child_template }
+        properties:
+          venv_username: { get_param: venv_username }
+          private_key: { get_attr: [ssh_key, private_key] }
+          app_name: { get_param: app_name }
+          server_hostname: { get_param: server_hostname }
+          image: { get_param: image }
+          flavor: { get_param: flavor }
+          ssh_keypair_name: { get_resource: ssh_key }
+          virtualenv: { get_param: virtualenv }
+          project_name: { get_param: project_name }
+          django_admin_user: { get_param: django_admin_user }
+          django_admin_email: { get_param: django_admin_email }
+          django_admin_pass: { get_attr: [django_admin_pass, value] }
+          db_user: { get_param: db_user }
+          db_pass:  { get_attr: [db_pass, value] }
+          database_host: { get_attr: [service_db, hostname] }
+          chef_version: { get_param: chef_version }
+          kitchen: { get_param: kitchen }
+          parent_stack_id: { get_param: "OS::stack_id" }
+          rc_network_name: { get_param: rc_network_name }
+
+  load_balancer:
+    type: "Rackspace::Cloud::LoadBalancer"
+    depends_on:
+    - django_setup
+    properties:
+      name: { get_param: load_balancer_hostname }
+      nodes:
+      - addresses: { get_attr: [django_setup, privateIPv4] }
+        port: 80
+        condition: ENABLED
+      healthMonitor:
+        type: CONNECT
+        delay: 10
+        timeout: 5
+        attemptsBeforeDeactivation: 1
+      port: 80
+      protocol: HTTP
+      algorithm: ROUND_ROBIN
+      contentCaching: ENABLED
+      virtualIps:
+      - type: PUBLIC
+        ipVersion: IPV4
+      metadata:
+        rax-heat: { get_param: "OS::stack_id" }
+
+outputs:
+  private_key:
+    description: "SSH Private Key"
+    value: { get_attr: [ssh_key, private_key] }
+
+  load_balancer_ip:
+    description: "Load Balancer IP"
+    value: { get_attr: [load_balancer, PublicIp]}
+
+  server_ips:
+    description: "Server IPs"
+    value: { get_attr: [django_setup, accessIPv4] }
+
+  django_url:
+    description: "Django URL"
+    value:
+      str_replace:
+        template: "http://%ip%"
+        params:
+          "%ip%": { get_attr: [load_balancer, PublicIp] }
+
+  db_host:
+    value: { get_attr: [service_db, hostname] }
+    description: "Database Host"
+
+  db_user:
+    value: { get_param: db_user }
+    description: "Database Username"
+
+  db_pass:
+    value: { get_attr: [db_pass, value] }
+    description: "Database User Password"
+
+  db_name:
+    value: "app_data"
+    description: "Database Name"
+
+  django_admin_pass:
+    value: { get_attr: [django_admin_pass, value] }
+    description: "Django Admin Password"

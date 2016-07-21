@@ -1,0 +1,62 @@
+schema-version: 1.0.0
+application-family: Application Frameworks
+application-name: Django
+application-version: 1.7
+flavor: Multiple Linux servers
+flavor-weight: 1
+reach-info:
+  icon-20x20: https://0b5294b243620310a700-e388a7f3aba385a925111b1fc6f680d4.ssl.cf2.rackcdn.com/django-icon-20x20.png
+  tattoo: https://0b5294b243620310a700-e388a7f3aba385a925111b1fc6f680d4.ssl.cf2.rackcdn.com/django-tattoo.png
+hidden_outputs:
+  - private_key
+  - db_pass
+  - django_admin_pass
+abstract: |
+  Django is an open-source web application framework that allows Python
+  developers to easily create dynamic websites.
+instructions: |
+  #### Overview
+  The Python Virtual Environment under which Django will be installed will be
+  located in the /srv directory. Permissions will be configured so that the
+  Linux user that you specify (or pydev if you accepted the default value) will
+  have ownership of the Virtual Environment directory. From there you will find
+  a directory matching the name specified for your Django project. Your
+  application will be installed in this directory if you chose to clone a git
+  repository, otherwise it will be in the site-packages directory for the
+  Virtual Environment if you chose to use a setuptools/distribute tarball. The
+  tarball will be installed with pip, and all dependencies will be
+  automatically installed. If you choose not to install a Django application at
+  this time, the framework will be installed, but you will need to perform
+  further development before your site will be accessible.
+
+  #### Virtual Environment
+  For development, log in with the system user that you created, and cd in to
+  the directory for you virtual environment, which will be in the /srv
+  directory. If you accept the default value the directory will be /srv/venv.
+  From here you can activate your virtual environment by typing `bin/activate`.
+  The Django project directory is inside the directory for the virtual
+  environment and that's where you'll find the manage.py file for your Django
+  project.
+
+  #### Logging In via SSH
+  The Linux user provided with this deployment will provide you SSH access to
+  your servers. This user will have sudo access to gain root access.
+  Alternatively, the private key provided in the passwords section can be used
+  to login as root via SSH. We have an article on how to use these keys with
+  [Mac OS X and
+  Linux](http://www.rackspace.com/knowledge_center/article/logging-in-with-a-ssh-private-key-on-linuxmac)
+  as well as [Windows using
+  PuTTY](http://www.rackspace.com/knowledge_center/article/logging-in-with-a-ssh-private-key-on-windows).
+user-input-required: true
+description: |
+  Load Balanced Linux servers running [Django](http://djangoproject.com)
+  installed in a [Python](http://python.org)
+  [Virtual Environment](http://virutalenv.org)
+  running behind [Apache](http://httpd.apache.org/) with
+  [mod_wsgi](http://code.google.com/p/modwsgi/). The backend is a
+  Cloud Database running [MySQL](http://www.mysql.com/).
+  You may install a Django application by providing a URL to a public git
+  repository or a source distribution tarball that can be installed with pip.
+  Alternatively, you can continue without installing an application at this
+  time and your servers will be created with an empty Django project where
+  you can begin development of your site.

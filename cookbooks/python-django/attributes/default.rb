@@ -1,0 +1,16 @@
+default['django']['username'] = ""
+default['django']['password'] = ""
+default['django']['virtualenv'] = ""
+default['django']['project_name'] = ""
+default['django']['app_name'] = ""
+default['django']['database_name'] = ""
+default['django']['database_user'] = ""
+default['django']['database_host'] = ""
+default['django']['source_type'] = ""
+default['django']['source_url'] = ""
+default['django']['installed_apps'] = []
+default['django']['middleware_classes'] = []
+default['django']['template_context_processors'] = []
+default['django']['additional_commands'] = []
+default['django']['django_admin_user'] = ""
+default['django']['django_admin_email'] = ""
