@@ -52,6 +52,7 @@ parameter_groups:
   - server_hostname
   - kitchen
   - chef_version
+  - ansible_source
 
 parameters:
 
@@ -276,6 +277,25 @@ parameters:
     constraints:
     - custom_constraint: rackconnect.network
     immutable: true
+
+  loadbalancer_flavor:
+    type: string
+    default: 2 GB General Purpose v1
+    label: Server Flavor
+    description: Flavor of Cloud Server to use for WordPress
+    constraints:
+    - allowed_values:
+      - 2 GB General Purpose v1
+      - 4 GB General Purpose v1
+      - 8 GB General Purpose v1
+    immutable: true
+
+  ansible_source:
+    type: string
+    default: http://catalog.rs-heat.com/ansible-roles/ansible-roles.tar.gz
+    label: Ansible Tarball
+    description: The Ansible Roles will be pulled from the location provided
+    immutable: true
 resources:
   # SSH keys
   ssh_key:
@@ -340,30 +360,91 @@ resources:
           parent_stack_id: { get_param: "OS::stack_id" }
           rc_network_name: { get_param: rc_network_name }
 
-  load_balancer:
-    type: "Rackspace::Cloud::LoadBalancer"
-    depends_on:
-    - django_setup
+  #nginx load balancer
+  upload_lb_role_config:
+    type: OS::Heat::SoftwareConfig
     properties:
-      name: { get_param: load_balancer_hostname }
-      nodes:
-      - addresses: { get_attr: [django_setup, privateIPv4] }
-        port: 80
-        condition: ENABLED
-      healthMonitor:
-        type: CONNECT
-        delay: 10
-        timeout: 5
-        attemptsBeforeDeactivation: 1
-      port: 80
-      protocol: HTTP
-      algorithm: ROUND_ROBIN
-      contentCaching: ENABLED
-      virtualIps:
-      - type: PUBLIC
-        ipVersion: IPV4
+      group: script
+      outputs:
+      - name: results
+      config:
+        str_replace:
+          template: |
+            #!/bin/bash
+            set -e
+            mkdir -p /etc/ansible/roles
+            wget ansible_source -O /tmp/ansible-roles.tar.gz 2>&1
+            tar -xf /tmp/ansible-roles.tar.gz --strip-components=1 -C /etc/ansible/roles
+          params:
+            ansible_source: { get_param: ansible_source }
+  deploy_lb_roles:
+    type: OS::Heat::SoftwareDeployment
+    properties:
+      signal_transport: TEMP_URL_SIGNAL
+      config:
+        get_resource: upload_lb_role_config
+      server:
+        get_resource: load_balancer
+  deploy_loadbalancer:
+    type: OS::Heat::SoftwareDeployment
+    depends_on: deploy_lb_roles
+    properties:
+      signal_transport: TEMP_URL_SIGNAL
+      input_values:
+        nginx_vhost_str: "load_balancer"
+        nginx_vhost_template: "loadbalancer"
+        nginx_upstream_server: "0.0.0.0 down"
+        nginx_lb_nodes: { get_attr: [django_setup, accessIPv4] }
+        firewall_global_rules: [ "0.0.0.0,0,22,tcp", "0.0.0.0,0,80,tcp", "0.0.0.0,0,443,tcp"]
+      config:
+        get_resource: loadbalancer_config
+      server:
+        get_resource: load_balancer
+  loadbalancer_config:
+    type: OS::Heat::SoftwareConfig
+    properties:
+      group: ansible
+      inputs:
+      - default: "[]"
+        name: nginx_lb_nodes
+        type: CommaDelimitedList
+      - default: "[]"
+        name: firewall_global_rules
+        type: CommaDelimitedList
+      config: |
+        ---
+        - name: Install and configure nginx as Load Balancer
+          hosts: localhost
+          connection: local
+          roles:
+          - nginx
+          - firewall
+  load_balancer:
+    type: OS::Nova::Server
+    properties:
+      name:
+        str_replace:
+          template: stack_Load_Balancer
+          params:
+            stack: { get_param: "OS::stack_name" }
+      image: Ubuntu 14.04 LTS (Trusty Tahr) (PVHVM) (Orchestration)
+      flavor: { get_param: loadbalancer_flavor }
+      key_name: { get_resource: ssh_key }
+      software_config_transport: POLL_TEMP_URL
+      config_drive: true
+      user_data_format: SOFTWARE_CONFIG
+      networks:
+      - network: { get_param: rc_network_name }
+      - network: 11111111-1111-1111-1111-111111111111
       metadata:
         rax-heat: { get_param: "OS::stack_id" }
+        build_config: "monitoring_agent_only"
+  load_balancer_public_ip:
+    type: Rackspace::RackConnect::PublicIP
+    depends_on:
+    - load_balancer
+    properties:
+      server_id: { get_resource: load_balancer }
 
 outputs:
   private_key:
@@ -372,7 +453,7 @@ outputs:
 
   load_balancer_ip:
     description: "Load Balancer IP"
-    value: { get_attr: [load_balancer, PublicIp]}
+    value: { get_attr: [load_balancer, accessIPv4]}
 
   server_ips:
     description: "Server IPs"
@@ -384,7 +465,7 @@ outputs:
       str_replace:
         template: "http://%ip%"
         params:
-          "%ip%": { get_attr: [load_balancer, PublicIp] }
+          "%ip%": { get_attr: [load_balancer, accessIPv4] }
 
   db_host:
     value: { get_attr: [service_db, hostname] }
