@@ -1,7 +1,7 @@
 heat_template_version: 2013-05-23
 
 description: |
-  #### Django
+  ####Multiple Linux servers - RCv3
 
   Load Balanced Linux servers running [Django](http://djangoproject.com)
   installed in a [Python](http://python.org)
@@ -14,6 +14,8 @@ description: |
   Alternatively, you can continue without installing an application at this
   time and your servers will be created with an empty Django project where
   you can begin development of your site.
+
+  This template will only function with RackConnect v3.
 
 parameter_groups:
 

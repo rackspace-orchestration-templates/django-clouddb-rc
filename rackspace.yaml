@@ -2,8 +2,9 @@ schema-version: 1.0.0
 application-family: Application Frameworks
 application-name: Django
 application-version: 1.7
-flavor: Multiple Linux servers
+flavor: Multiple Linux servers - RCv3
 flavor-weight: 1
+rackconnect: true
 reach-info:
   icon-20x20: https://0b5294b243620310a700-e388a7f3aba385a925111b1fc6f680d4.ssl.cf2.rackcdn.com/django-icon-20x20.png
   tattoo: https://0b5294b243620310a700-e388a7f3aba385a925111b1fc6f680d4.ssl.cf2.rackcdn.com/django-tattoo.png
@@ -49,6 +50,7 @@ instructions: |
   PuTTY](http://www.rackspace.com/knowledge_center/article/logging-in-with-a-ssh-private-key-on-windows).
 user-input-required: true
 description: |
+  ####Multiple Linux servers - RCv3
   Load Balanced Linux servers running [Django](http://djangoproject.com)
   installed in a [Python](http://python.org)
   [Virtual Environment](http://virutalenv.org)
