@@ -50,7 +50,7 @@ instructions: |
   PuTTY](http://www.rackspace.com/knowledge_center/article/logging-in-with-a-ssh-private-key-on-windows).
 user-input-required: true
 description: |
-  ####Multiple Linux servers - RCv3
+  #### Multiple Linux servers - RCv3
   Load Balanced Linux servers running [Django](http://djangoproject.com)
   installed in a [Python](http://python.org)
   [Virtual Environment](http://virutalenv.org)

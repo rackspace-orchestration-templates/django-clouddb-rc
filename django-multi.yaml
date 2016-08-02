@@ -1,7 +1,7 @@
 heat_template_version: 2013-05-23
 
 description: |
-  ####Multiple Linux servers - RCv3
+  #### Multiple Linux servers - RCv3
 
   Load Balanced Linux servers running [Django](http://djangoproject.com)
   installed in a [Python](http://python.org)
